@@ -9,7 +9,6 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.util.*
 import java.util.UUID
-import org.checkerframework.checker.units.qual.g
 
 trait Jobs[F[_]] {
   // "algebra"
@@ -21,26 +20,6 @@ trait Jobs[F[_]] {
   def delete(id: UUID): F[Int]
 }
 
-/*
-  id: UUID,
-  date: Long,
-  ownerEmail: String,
-  company: String,
-  title: String,
-  description: String,
-  externalUrl: String,
-  remote: Boolean,
-  location: String,
-  salaryLo: Option[Int],
-  salaryHi: Option[Int],
-  currency: Option[String],
-  country: Option[String],
-  tags: Option[List[String]],
-  image: Option[String],
-  seniority: Option[String],
-  other: Option[String],
-  active: Boolean = false
- */
 class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F]) extends Jobs[F] {
 
   def create(ownerEmail: String, jobInfo: JobInfo): F[UUID] = 
@@ -116,6 +95,7 @@ class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F]) extends Jobs[
 
   def find(id: UUID): F[Option[Job]] =
     sql"""
+    SELECT
       id,
       date,
       ownerEmail,
@@ -134,8 +114,8 @@ class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F]) extends Jobs[
       seniority,
       other,
       active
-      FROM jobs
-      WHERE id = $id
+    FROM jobs
+    WHERE id = $id
     """
     .query[Job]
     .option
