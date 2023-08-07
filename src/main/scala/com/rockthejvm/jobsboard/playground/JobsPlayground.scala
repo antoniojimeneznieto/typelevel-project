@@ -48,3 +48,16 @@ object JobsPlayground extends IOApp.Simple {
     } yield ()
   }
 }
+
+/* 
+    curl -v -X POST localhost:4041/api/jobs                         -- find all jobs
+    curl -v -X GET localhost:4041/api/jobs/<id>                     -- find a specific job by <id>
+    curl -v -X DELETE localhost:4041/api/jobs/<id?                  -- delete a specific job by <id>
+    curl -v -X POST -H "Content-Type: application/json"             -- create a job with the .json data from the specify file
+                    -d @src/main/resources/payloads/jobinfo.json
+                    localhost:4041/api/jobs/create
+    curl -v -X PUT -H "Content-Type: application/json"              -- update a job with <id> with the .json data from the specify file
+                   -d @src/main/resources/payloads/jobinfo.json
+                   localhost:4041/api/jobs/<id> 
+
+*/
