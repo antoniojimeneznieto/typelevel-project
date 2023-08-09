@@ -20,6 +20,7 @@ import java.util.UUID
 import org.http4s.HttpRoutes
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.rockthejvm.jobsboard.domain.pagination.*
 
 class JobRoutesSpec
     extends AsyncFreeSpec
@@ -37,6 +38,10 @@ class JobRoutesSpec
 
       override def all(): IO[List[Job]] = 
         IO.pure(List(AwesomeJob))
+
+      override def all(filter: JobFilter, pagination: Pagination): IO[List[Job]] = 
+        if (filter.remote) IO.pure(List())
+        else IO.pure(List(AwesomeJob))
 
       override def find(id: UUID): IO[Option[Job]] = 
         if (id == AwesomeJobUuid)
@@ -83,11 +88,25 @@ class JobRoutesSpec
         for {
           response <- jobRoutes.orNotFound.run(
             Request(method = Method.POST, uri = uri"/jobs/")
+              .withEntity(JobFilter()) // empty filter
           )
           retrieved <- response.as[List[Job]]
         } yield {
           response.status shouldBe Status.Ok
           retrieved shouldBe List(AwesomeJob)
+        }
+      }
+
+      "should return all jobs that satisfy a filter" in {
+        for {
+          response <- jobRoutes.orNotFound.run(
+            Request(method = Method.POST, uri = uri"/jobs/")
+              .withEntity(JobFilter(remote = true)) // empty filter
+          )
+          retrieved <- response.as[List[Job]]
+        } yield {
+          response.status shouldBe Status.Ok
+          retrieved shouldBe List()
         }
       }
 

@@ -7,6 +7,10 @@ import org.scalatest.freespec.AsyncFreeSpec
 import cats.effect.testing.scalatest.AsyncIOSpec
 import org.scalatest.matchers.should.Matchers
 import com.rockthejvm.jobsboard.fixtures.JobFixture
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.rockthejvm.jobsboard.domain.job.JobFilter
+import com.rockthejvm.jobsboard.domain.pagination.*
 
 class JobsSpec
     extends AsyncFreeSpec
@@ -16,6 +20,8 @@ class JobsSpec
     with JobFixture {
 
   val initScript: String = "sql/jobs.sql"
+
+  given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   "Jobs 'algebra'" - {
     "should return no job if the given UUID does not exist" in {
@@ -111,6 +117,28 @@ class JobsSpec
         } yield numberOfDeletedJobs
 
         program.asserting(_ shouldBe 0)
+      }
+    }
+
+    "should filter remote jobs" in {
+      transactor.use { xa =>
+        val program = for {
+          jobs         <- LiveJobs[IO](xa)
+          filteredJobs <- jobs.all(JobFilter(remote = true), Pagination.default)
+        } yield filteredJobs
+
+        program.asserting(_ shouldBe List())
+      }
+    }
+
+    "should filter jobs by tags" in {
+      transactor.use { xa =>
+        val program = for {
+          jobs         <- LiveJobs[IO](xa)
+          filteredJobs <- jobs.all(JobFilter(tags = List("scala", "cats", "doobie")), Pagination.default)
+        } yield filteredJobs
+
+        program.asserting(_ shouldBe List(AwesomeJob))
       }
     }
 
