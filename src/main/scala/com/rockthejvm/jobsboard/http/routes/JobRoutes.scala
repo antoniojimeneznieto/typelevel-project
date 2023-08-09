@@ -18,8 +18,9 @@ import com.rockthejvm.jobsboard.domain.job.*
 import com.rockthejvm.jobsboard.http.responses.*
 import com.rockthejvm.jobsboard.core.*
 import com.rockthejvm.jobsboard.logging.syntax.*
+import com.rockthejvm.jobsboard.http.validation.syntax.*
 
-class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends Http4sDsl[F] {
+class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends HttpValidationDsl[F] {
 
   // "database"
   private val database = mutable.Map[UUID, Job]()
@@ -43,26 +44,26 @@ class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends Http4s
   // POST /jobs { jobInfo }
   private val createJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ POST -> Root / "create" =>
-      for {
-        _       <- Logger[F].info("Trying to add job")
-        jobInfo <- req.as[JobInfo].logError(e => s"Parsing payload failed: $e")
-        _       <- Logger[F].info(s"Parsed job info: $jobInfo")
-        jobId   <- jobs.create("TODO@rockthejvm.com", jobInfo)
-        _       <- Logger[F].info(s"Created job with ID: $jobId")
-        resp    <- Created(jobId)
-      } yield resp
+      req.validate[JobInfo] { jobInfo =>
+        for {
+          jobId <- jobs.create("TODO@rockthejvm.com", jobInfo)
+          resp  <- Created(jobId)
+        } yield resp
+      }
   }
 
   // PUT /jobs/uuid { jobInfo }
   private val updateJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ PUT -> Root / UUIDVar(id) =>
-      for {
-        jobInfo     <- req.as[JobInfo]
-        maybeNewJob <- jobs.update(id, jobInfo)
-        resp <- maybeNewJob match
-          case Some(job) => Ok()
-          case None      => NotFound(FailureResponse(s"Cannot update job $id: not found"))
-      } yield resp
+      req.validate[JobInfo] { jobInfo =>
+        for {
+          jobInfo     <- req.as[JobInfo]
+          maybeNewJob <- jobs.update(id, jobInfo)
+          resp <- maybeNewJob match
+            case Some(job) => Ok()
+            case None      => NotFound(FailureResponse(s"Cannot update job $id: not found"))
+        } yield resp
+      }
   }
 
   // DELETE /jobs/uuid
