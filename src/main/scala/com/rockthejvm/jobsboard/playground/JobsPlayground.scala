@@ -9,6 +9,10 @@ import com.rockthejvm.jobsboard.domain.job.*
 import com.rockthejvm.jobsboard.core.LiveJobs
 import scala.io.StdIn
 
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
+
+
 object JobsPlayground extends IOApp.Simple {
 
   val postgresResource: Resource[IO, HikariTransactor[IO]] = for {
@@ -31,6 +35,7 @@ object JobsPlayground extends IOApp.Simple {
     location = "Anywhere"
   )
 
+  given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   override def run: IO[Unit] = postgresResource.use { xa =>
     for {
       jobs      <- LiveJobs[IO](xa)
