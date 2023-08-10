@@ -20,7 +20,6 @@ class JobsSpec
     with JobFixture {
 
   val initScript: String = "sql/jobs.sql"
-
   given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   "Jobs 'algebra'" - {
