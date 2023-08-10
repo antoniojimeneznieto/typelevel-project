@@ -10,6 +10,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import com.rockthejvm.jobsboard.fixtures.*
 import com.rockthejvm.jobsboard.domain.user.*
+import com.rockthejvm.jobsboard.logging.syntax.*
 import org.scalatest.Inside
 import org.postgresql.util.PSQLException
 
@@ -50,20 +51,17 @@ class UsersSpec
       transactor.use { xa =>
         val program = for {
           users  <- LiveUsers[IO](xa)
-          userId <- users.create(NewUser)
-        } yield userId
-
-        program.asserting(_ shouldBe NewUser.email)
-
-        val query = transactor.use { xa =>
-          sql"SELECT * FROM users WHERE email = ${NewUser.email}"
+          userId <- users.create(NewUser).logError(e => s"found error creating user: $e")
+          maybeUser <- sql"SELECT * FROM users WHERE email = ${NewUser.email}"
             .query[User]
             .option
             .transact(xa)
+        } yield (userId, maybeUser)
+
+        program.asserting { case (userId, maybeUser) =>
+          userId shouldBe NewUser.email
+          maybeUser shouldBe Some(NewUser)
         }
-
-        query.asserting(_ shouldBe Some(NewUser))
-
       }
     }
 
@@ -110,18 +108,17 @@ class UsersSpec
         val program = for {
           users  <- LiveUsers[IO](xa)
           result <- users.delete("antonio@gmail.com")
-        } yield result
-
-        program.asserting(_ shouldBe true)
-
-        val query = transactor.use { xa =>
-          sql"SELECT * FROM users WHERE email = ${NewUser.email}"
+          maybeUser <- sql"SELECT * FROM users WHERE email = ${NewUser.email}"
             .query[User]
             .option
             .transact(xa)
-        }
+        } yield (result, maybeUser)
 
-        query.asserting(_ shouldBe None)
+        program.asserting {
+          case (result, maybeUser) =>
+            result shouldBe true 
+            maybeUser shouldBe None
+        }
       }
     }
 
