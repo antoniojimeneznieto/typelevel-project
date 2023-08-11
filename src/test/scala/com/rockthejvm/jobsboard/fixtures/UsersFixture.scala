@@ -2,10 +2,18 @@ package com.rockthejvm.jobsboard.fixtures
 
 import com.rockthejvm.jobsboard.domain.user.*
 
+/* 
+scalarocks = $2a$10$hLJeMYjZTz7wx1CnVQB3MOLnPkt31UubfwrYEVCRvfZam7JfbQu1C
+rockthejvm = $2a$10$CwRev.QE8pBqST/NWE7LNuRWuSFbaWaa3JRHyy1sz/uvuOf3nsMpG
+riccardorulez = $2a$10$x6Ly5NFeuA9R3A/JTpS13.BKSo.hSfh.EgNLKFR582Klurykge5vW
+simplepassword = $2a$10$h0Dx9KxmACTtJe/b5XpjTuq5K5xCX8mAiLxYWh7MasMx5w8VeT1De
+riccardorocks = $2a$10$1QTSALSN9aoG0FIC0c.eRu6SixfDxwIxtgUPv3vGy9hofcraBT1Vq
+*/
+
 trait UsersFixture {
   val Antonio = User(
     "antonio@gmail.com",
-    "rockthejvm",
+    "$2a$10$CwRev.QE8pBqST/NWE7LNuRWuSFbaWaa3JRHyy1sz/uvuOf3nsMpG",
     Some("Antonio"),
     Some("Jimenez"),
     Some("Swissborg"),
@@ -16,7 +24,7 @@ trait UsersFixture {
 
   val Riccardo = User(
     "riccardo@gmail.com",
-    "riccardorulez",
+    "$2a$10$x6Ly5NFeuA9R3A/JTpS13.BKSo.hSfh.EgNLKFR582Klurykge5vW",
     Some("Ricardo"),
     Some("cardin"),
     Some("Swissborg"),
@@ -27,7 +35,7 @@ trait UsersFixture {
 
   val NewUser = User(
     "newuser@gmail.com",
-    "simplepassword",
+    "$2a$10$h0Dx9KxmACTtJe/b5XpjTuq5K5xCX8mAiLxYWh7MasMx5w8VeT1De",
     Some("John"),
     Some("Doe"),
     Some("Company"),
@@ -36,7 +44,7 @@ trait UsersFixture {
 
   val UpdatedRiccardo = User(
     "riccardo@gmail.com",
-    "riccardorocks",
+    "$2a$10$1QTSALSN9aoG0FIC0c.eRu6SixfDxwIxtgUPv3vGy9hofcraBT1Vq",
     Some("RICARDO"),
     Some("CARDIN"),
     Some("Adobe"),

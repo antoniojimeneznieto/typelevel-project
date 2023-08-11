@@ -19,7 +19,7 @@ INSERT INTO users (
   role
 ) VALUES (
   'antonio@gmail.com',
-  'rockthejvm',
+  '$2a$10$CwRev.QE8pBqST/NWE7LNuRWuSFbaWaa3JRHyy1sz/uvuOf3nsMpG',
   'Antonio',
   'Jimenez',
   'Swissborg',
@@ -35,7 +35,7 @@ INSERT INTO users (
   role
 ) VALUES (
   'riccardo@gmail.com',
-  'riccardorulez',
+  '$2a$10$x6Ly5NFeuA9R3A/JTpS13.BKSo.hSfh.EgNLKFR582Klurykge5vW',
   'Ricardo',
   'cardin',
   'Swissborg',
