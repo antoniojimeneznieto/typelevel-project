@@ -12,7 +12,6 @@ import org.http4s.dsl.*
 import org.http4s.dsl.impl.*
 import org.http4s.server.*
 
-import scala.collection.mutable
 import java.util.UUID
 import com.rockthejvm.jobsboard.domain.job.*
 import com.rockthejvm.jobsboard.domain.pagination.*
@@ -30,7 +29,7 @@ class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends HttpVa
   private val allJobsRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ POST -> Root :? LimitQueryParam(limit) +& OffsetQueryParam(offset) =>
       for {
-        filter <- req.as[JobFilter]
+        filter   <- req.as[JobFilter]
         jobsList <- jobs.all(filter, Pagination(limit, offset))
         resp     <- Ok(jobsList)
       } yield resp
