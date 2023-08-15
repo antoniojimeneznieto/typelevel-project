@@ -1,6 +1,5 @@
 package com.rockthejvm.jobsboard.http.routes
 
-
 import cats.effect.*
 import cats.implicits.*
 import io.circe.generic.auto.*
@@ -15,12 +14,11 @@ import org.scalatest.matchers.should.Matchers
 import com.rockthejvm.jobsboard.fixtures.*
 import com.rockthejvm.jobsboard.core.*
 import com.rockthejvm.jobsboard.domain.job.*
+import com.rockthejvm.jobsboard.domain.pagination.*
 
 import java.util.UUID
-import org.http4s.HttpRoutes
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import com.rockthejvm.jobsboard.domain.pagination.*
 
 class JobRoutesSpec
     extends AsyncFreeSpec
