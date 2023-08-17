@@ -23,11 +23,13 @@ trait Auth[F[_]] {
   ): F[Either[String, Option[User]]]
   // TODO: password recovery via email
 
+  def authenticator: Authenticator[F] 
+
 }
 
 class LiveAuth[F[_]: Async: Logger] private (
     users: Users[F],
-    authenticator: Authenticator[F]
+    override val authenticator: Authenticator[F]
 ) extends Auth[F] {
   def login(email: String, password: String): F[Option[JwtToken]] = for {
     maybeUser <- users.find(email)
