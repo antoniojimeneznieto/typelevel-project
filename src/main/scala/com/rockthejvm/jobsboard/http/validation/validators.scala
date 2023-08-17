@@ -5,6 +5,8 @@ import cats.implicits.*
 import cats.data.*
 import cats.data.Validated.*
 import com.rockthejvm.jobsboard.domain.job.*
+import com.rockthejvm.jobsboard.domain.auth.*
+import com.rockthejvm.jobsboard.domain.user.*
 
 import java.net.URL
 import scala.util.Try
@@ -17,6 +19,8 @@ object validators {
   case class EmptyField(fieldName: String) extends ValidationFailure(s"'$fieldName' is empty")
   case class InvalidUrl(fieldName: String)
       extends ValidationFailure(s"'$fieldName' is not a valid URL")
+  case class InvalidEmail(fieldName: String)
+      extends ValidationFailure(s"'$fieldName' is not a valid email")
   // empty field, invalid URL, invalid email, ...
 
   type ValidationResult[A] = ValidatedNel[ValidationFailure, A]
@@ -24,6 +28,10 @@ object validators {
   trait Validator[A] {
     def validate(value: A): ValidationResult[A]
   }
+
+  // conditions
+  val emailRegex =
+    """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
 
   def validateRequired[A](field: A, fieldName: String)(
       required: A => Boolean
@@ -36,6 +44,10 @@ object validators {
       case Success(_) => field.validNel
       case Failure(e) => InvalidUrl(fieldName).invalidNel
     }
+
+  def validateEmail(field: String, fieldName: String): ValidationResult[String] =
+    if (emailRegex.findFirstMatchIn(field).isDefined) field.validNel
+    else InvalidEmail(fieldName).invalidNel
 
   given jobInfoValidator: Validator[JobInfo] = (jobInfo: JobInfo) => {
     val JobInfo(
@@ -78,4 +90,42 @@ object validators {
       other.validNel      // other
     ).mapN(JobInfo.apply) // ValidatedNel[ValidationFailure, JobInfo]
   }
+
+  // create validators for
+  // loginInfo
+  given loginInfoValidator: Validator[LoginInfo] = (loginInfo: LoginInfo) => {
+    val validUserEmail = validateRequired(loginInfo.email, "email")(_.nonEmpty)
+      .andThen(e => validateEmail(e, "email"))
+
+    val validUserPassword = validateRequired(loginInfo.password, "password")(_.nonEmpty)
+    (validUserEmail, validUserPassword).mapN(LoginInfo.apply)
+  }
+
+  // newUserInfo
+  given newUserInfoValidator: Validator[NewUserInfo] = (newUserInfo: NewUserInfo) => {
+    val validUserEmail = validateRequired(newUserInfo.email, "email")(_.nonEmpty)
+      .andThen(e => validateEmail(e, "email"))
+
+    val validUserPassword = validateRequired(newUserInfo.password, "password")(_.nonEmpty)
+
+    (
+      validUserEmail,
+      validUserPassword,
+      newUserInfo.firstName.validNel,
+      newUserInfo.lastName.validNel,
+      newUserInfo.company.validNel
+    ).mapN(NewUserInfo.apply)
+  }
+
+  // newPasswordInfo
+  given newPasswordInfo: Validator[NewPasswordInfo] = (newPasswordInfo: NewPasswordInfo) => {
+    val validOldPassword = validateRequired(newPasswordInfo.oldPassword, "old password")(_.nonEmpty)
+    val validNewPassword = validateRequired(newPasswordInfo.newPassword, "new password")(_.nonEmpty)
+
+    (
+      validOldPassword,
+      validNewPassword
+    ).mapN(NewPasswordInfo.apply)
+  }
+
 }
