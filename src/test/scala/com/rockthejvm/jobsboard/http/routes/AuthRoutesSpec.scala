@@ -57,12 +57,30 @@ class AuthRoutesSpec
   }
 
   val mockedAuth: Auth[IO] = new Auth[IO] {
-    def login(email: String, password: String): IO[Option[JwtToken]] = ???
-    def signUp(newUserInfo: NewUserInfo): IO[Option[User]]           = ???
+    def login(email: String, password: String): IO[Option[JwtToken]] =
+      if (email == antonioEmail && password == antonioPassword)
+        mockedAuthenticator.create(antonioEmail).map(Some(_))
+      else IO.pure(None)
+
+    def signUp(newUserInfo: NewUserInfo): IO[Option[User]] = 
+      if (newUserInfo.email == riccardoEmail)
+        IO.pure(Some(Riccardo))
+      else 
+        IO.pure(None)
+
     def changePassword(
         email: String,
         newPasswordInfo: NewPasswordInfo
-    ): IO[Either[String, Option[User]]] = ???
+    ): IO[Either[String, Option[User]]] = 
+      if (email == antonioEmail)
+        if (newPasswordInfo.oldPassword == antonioPassword)
+          IO.pure(Right(Some(Antonio)))
+        else
+          IO.pure(Left("Invalid password"))
+      else 
+        IO.pure(Right(None))
+
+    def authenticator: Authenticator[IO] = mockedAuthenticator
   }
 
   extension (r: Request[IO])
@@ -107,7 +125,7 @@ class AuthRoutesSpec
     "should return a 400 - Bad Request if the user to create already exists" in {
       for {
         response <- authRoutes.orNotFound.run(
-          Request(method = Method.POST, uri = uri"/auth/login")
+          Request(method = Method.POST, uri = uri"/auth/users")
             .withEntity(NewUserAntonio)
         )
       } yield {
@@ -118,7 +136,7 @@ class AuthRoutesSpec
     "should return a 201 - Created if the user creation succeds" in {
       for {
         response <- authRoutes.orNotFound.run(
-          Request(method = Method.POST, uri = uri"/auth/login")
+          Request(method = Method.POST, uri = uri"/auth/users")
             .withEntity(NewUserRiccardo)
         )
       } yield {
