@@ -8,6 +8,9 @@ import cats.implicits.*
 import cats.effect.*
 import org.typelevel.log4cats.Logger
 import org.http4s.*
+
+import tsec.authentication.TSecAuthService
+import tsec.authentication.SecuredRequestHandler
 import tsec.authentication.asAuthed
 
 import org.http4s.server.*
@@ -17,8 +20,6 @@ import com.rockthejvm.jobsboard.domain.auth.*
 import com.rockthejvm.jobsboard.domain.user.*
 import com.rockthejvm.jobsboard.domain.security.*
 import com.rockthejvm.jobsboard.http.responses.*
-import tsec.authentication.TSecAuthService
-import tsec.authentication.SecuredRequestHandler
 
 class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpValidationDsl[F] {
 
@@ -28,44 +29,47 @@ class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpV
 
   // POST /auth/login {LoginInfo} => 200 OK with Authorization: Bearer  {jwt}
   private val loginRoute: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
-    val maybeJwtToken = for {
-      loginInfo  <- req.as[LoginInfo]
-      maybeToken <- auth.login(loginInfo.email, loginInfo.password)
-      _          <- Logger[F].info(s"User logging in ${loginInfo.email}")
-    } yield maybeToken
+    req.validate[LoginInfo] { loginInfo =>
+      val maybeJwtToken = for {
+        maybeToken <- auth.login(loginInfo.email, loginInfo.password)
+        _          <- Logger[F].info(s"User logging in ${loginInfo.email}")
+      } yield maybeToken
 
-    maybeJwtToken.map {
-      case Some(token) => authenticator.embed(Response(Status.Ok), token)
-      case None        => Response(Status.Unauthorized)
+      maybeJwtToken.map {
+        case Some(token) => authenticator.embed(Response(Status.Ok), token)
+        case None        => Response(Status.Unauthorized)
+      }
     }
   }
 
   // POST /auth/users { NewUserInfo } => 201 Created
   private val createUserRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ POST -> Root / "users" =>
-      for {
-        newUserInfo  <- req.as[NewUserInfo]
-        maybeNewUser <- auth.signUp(newUserInfo)
-        resp <- maybeNewUser match {
-          case Some(user) => Created(user.email)
-          case None       => BadRequest(s"User with email ${newUserInfo.email} already exists.")
+      req.validate[NewUserInfo] { newUserInfo =>
+        for {
+          maybeNewUser <- auth.signUp(newUserInfo)
+          resp <- maybeNewUser match {
+            case Some(user) => Created(user.email)
+            case None       => BadRequest(s"User with email ${newUserInfo.email} already exists.")
 
-        }
-      } yield resp
+          }
+        } yield resp
+      }
   }
 
   // PUT /auth/users/password { NewPasswordInfo } { Authorization: Bearer {jwt} } => 200 OK
   private val changePasswordRoute: AuthRoute[F] = {
     case req @ PUT -> Root / "users" / "password" asAuthed user =>
-      for {
-        newPasswordInfo  <- req.request.as[NewPasswordInfo]
-        maybeUserOrError <- auth.changePassword(user.email, newPasswordInfo)
-        resp <- maybeUserOrError match {
-          case Right(Some(_)) => Ok()
-          case Right(None)    => NotFound(FailureResponse(s"User ${user.email} not found."))
-          case Left(_)        => Forbidden()
-        }
-      } yield resp
+      req.request.validate[NewPasswordInfo] { newPasswordInfo =>
+        for {
+          maybeUserOrError <- auth.changePassword(user.email, newPasswordInfo)
+          resp <- maybeUserOrError match {
+            case Right(Some(_)) => Ok()
+            case Right(None)    => NotFound(FailureResponse(s"User ${user.email} not found."))
+            case Left(_)        => Forbidden()
+          }
+        } yield resp
+      }
   }
 
   // POST /auth/logout { Authorization: Bearer {jwt} } => 200 OK
