@@ -21,10 +21,10 @@ trait Auth[F[_]] {
       email: String,
       newPasswordInfo: NewPasswordInfo
   ): F[Either[String, Option[User]]]
-  // TODO: password recovery via email
+
+  def delete(email: String): F[Boolean]
 
   def authenticator: Authenticator[F] 
-
 }
 
 class LiveAuth[F[_]: Async: Logger] private (
@@ -90,6 +90,8 @@ class LiveAuth[F[_]: Async: Logger] private (
     }
 
   }
+
+  def delete(email: String): F[Boolean] = users.delete(email)
 
 }
 
