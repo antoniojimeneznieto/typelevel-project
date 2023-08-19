@@ -21,6 +21,8 @@ import com.rockthejvm.jobsboard.domain.user.*
 import com.rockthejvm.jobsboard.domain.security.*
 import com.rockthejvm.jobsboard.http.responses.*
 
+import scala.language.implicitConversions
+
 class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpValidationDsl[F] {
 
   private val authenticator = auth.authenticator
@@ -81,9 +83,23 @@ class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpV
     } yield resp
   }
 
+  // DELETE /auth/users/antonio@gmail.com CAN BE USED ONLY BY ADMINS
+  private val deleteUserRoute: AuthRoute[F] = { case req @ DELETE -> Root / "users" / email asAuthed user =>
+    // auth - delete user
+    auth.delete(email).flatMap {
+      case true => Ok()
+      case false => NotFound()
+    }
+  }
+
   val unauthedRoutes = (loginRoute <+> createUserRoute)
   val authedRoutes =
-    securedHandler.liftService(TSecAuthService(changePasswordRoute.orElse(logoutRoute)))
+    securedHandler.liftService(
+      changePasswordRoute.restrictedTo(allRoles) |+|
+      logoutRoute.restrictedTo(allRoles) |+|
+      deleteUserRoute.restrictedTo(adminOnly) 
+      // TSecAuthService(changePasswordRoute.orElse(logoutRoute))
+      )
 
   val routes = Router(
     "/auth" -> (unauthedRoutes <+> authedRoutes)
