@@ -37,24 +37,12 @@ class AuthRoutesSpec
     with AsyncIOSpec
     with Matchers
     with Http4sDsl[IO]
-    with UsersFixture {
+    with UsersFixture
+    with SecuredRouteFixture {
   ////////////////////////////////////////////////////////////////////////////////
   // prep
   ////////////////////////////////////////////////////////////////////////////////
-  val mockedAuthenticator: Authenticator[IO] = {
-    // key for hashing, identity store to retrieve users, jwt authenticator
-    val key = HMACSHA256.unsafeGenerateKey
-    val idStore: IdentityStore[IO, String, User] = (email: String) =>
-      if (email == antonioEmail) OptionT.pure(Antonio)
-      else if (email == riccardoEmail) OptionT.pure(Riccardo)
-      else OptionT.none[IO, User]
-    JWTAuthenticator.unbacked.inBearerToken(
-      1.day,   // expiration of tokens
-      None,    // max idle time (optional)
-      idStore, // identity store
-      key      //
-    )
-  }
+
 
   val mockedAuth: Auth[IO] = new Auth[IO] {
     def login(email: String, password: String): IO[Option[JwtToken]] =
@@ -84,14 +72,6 @@ class AuthRoutesSpec
 
     def authenticator: Authenticator[IO] = mockedAuthenticator
   }
-
-  extension (r: Request[IO])
-    def withBearerToken(a: JwtToken): Request[IO] =
-      r.putHeaders {
-        val jwtString = JWTMac.toEncodedString[IO, HMACSHA256](a.jwt)
-        // Authorization: Bearer {jwt}
-        Authorization(Credentials.Token(AuthScheme.Bearer, jwtString))
-      }
 
   given logger: Logger[IO]       = Slf4jLogger.getLogger[IO]
   val authRoutes: HttpRoutes[IO] = AuthRoutes[IO](mockedAuth).routes
