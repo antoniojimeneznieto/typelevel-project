@@ -98,7 +98,6 @@ class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpV
       changePasswordRoute.restrictedTo(allRoles) |+|
       logoutRoute.restrictedTo(allRoles) |+|
       deleteUserRoute.restrictedTo(adminOnly) 
-      // TSecAuthService(changePasswordRoute.orElse(logoutRoute))
       )
 
   val routes = Router(
