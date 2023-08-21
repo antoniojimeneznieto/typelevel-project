@@ -14,6 +14,7 @@ import com.rockthejvm.jobsboard.domain.user.*
 import com.rockthejvm.jobsboard.domain.security.*
 import org.http4s.*
 import org.http4s.headers.*
+import tsec.authentication.SecuredRequestHandler
 
 trait SecuredRouteFixture extends UsersFixture {
   val mockedAuthenticator: Authenticator[IO] = {
@@ -38,4 +39,6 @@ trait SecuredRouteFixture extends UsersFixture {
         // Authorization: Bearer {jwt}
         Authorization(Credentials.Token(AuthScheme.Bearer, jwtString))
       }
+
+  given securedHandler: SecuredHandler[IO] = SecuredRequestHandler(mockedAuthenticator)
 }
