@@ -21,7 +21,10 @@ object security {
   type AuthRoute[F[_]]     = PartialFunction[SecuredRequest[F, User, JwtToken], F[Response[F]]]
   // type aliasis for http route
   type AuthRBAC[F[_]]      = BasicRBAC[F, Role, User, JwtToken]
-  type SecureHandler[F[_]] = SecuredRequestHandler[F, String, User, JwtToken]
+  type SecuredHandler[F[_]] = SecuredRequestHandler[F, String, User, JwtToken]
+  object SecuredHandler {
+    def apply[F[_]](using handler: SecuredHandler[F]): SecuredHandler[F] = handler
+  }
 
   // RBAC
   // BasicRBAC[F, Role, User, JwtToken]
