@@ -23,18 +23,18 @@ import com.rockthejvm.jobsboard.http.responses.*
 
 import scala.language.implicitConversions
 
-class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpValidationDsl[F] {
-
-  private val authenticator = auth.authenticator
-  private val securedHandler: SecuredRequestHandler[F, String, User, JwtToken] =
-    SecuredRequestHandler(authenticator)
+class AuthRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (
+    auth: Auth[F],
+    authenticator: Authenticator[F]
+) extends HttpValidationDsl[F] {
 
   // POST /auth/login {LoginInfo} => 200 OK with Authorization: Bearer  {jwt}
   private val loginRoute: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
     req.validate[LoginInfo] { loginInfo =>
       val maybeJwtToken = for {
-        maybeToken <- auth.login(loginInfo.email, loginInfo.password)
+        maybeUser  <- auth.login(loginInfo.email, loginInfo.password)
         _          <- Logger[F].info(s"User logging in ${loginInfo.email}")
+        maybeToken <- maybeUser.traverse(user => authenticator.create(user.email))
       } yield maybeToken
 
       maybeJwtToken.map {
@@ -84,21 +84,22 @@ class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpV
   }
 
   // DELETE /auth/users/antonio@gmail.com CAN BE USED ONLY BY ADMINS
-  private val deleteUserRoute: AuthRoute[F] = { case req @ DELETE -> Root / "users" / email asAuthed user =>
-    // auth - delete user
-    auth.delete(email).flatMap {
-      case true => Ok()
-      case false => NotFound()
-    }
+  private val deleteUserRoute: AuthRoute[F] = {
+    case req @ DELETE -> Root / "users" / email asAuthed user =>
+      // auth - delete user
+      auth.delete(email).flatMap {
+        case true  => Ok()
+        case false => NotFound()
+      }
   }
 
   val unauthedRoutes = (loginRoute <+> createUserRoute)
   val authedRoutes =
-    securedHandler.liftService(
+    SecuredHandler[F].liftService(
       changePasswordRoute.restrictedTo(allRoles) |+|
-      logoutRoute.restrictedTo(allRoles) |+|
-      deleteUserRoute.restrictedTo(adminOnly) 
-      )
+        logoutRoute.restrictedTo(allRoles) |+|
+        deleteUserRoute.restrictedTo(adminOnly)
+    )
 
   val routes = Router(
     "/auth" -> (unauthedRoutes <+> authedRoutes)
@@ -106,7 +107,13 @@ class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpV
 
 }
 
+/*
+  - need a CAPABILITY, instead of intermediate values (use Dependency Injection in that case)
+  - instantiated ONCE in the entire apps
+ */
 object AuthRoutes {
-  def apply[F[_]: Concurrent: Logger](auth: Auth[F]) = new AuthRoutes[F](auth)
+  def apply[
+      F[_]: Concurrent: Logger: SecuredHandler
+  ](auth: Auth[F], authenticator: Authenticator[F]) = new AuthRoutes[F](auth, authenticator)
 
 }
