@@ -53,7 +53,7 @@ Instructions for playing with users:
     http://localhost:4041/api/auth/logout
     ```
 
-    delete (exclusive for Role.ADMIN):
+    delete (exclusive for Role.ADMIN || user 'owns' the user to delete):
     ```
     curl -v -X DELETE \
     -H "Content-Type: application/json" \
