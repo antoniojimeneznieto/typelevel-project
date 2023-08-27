@@ -14,12 +14,16 @@ final class Core[F[_]: Sync] private (val jobs: Jobs[F], val users: Users[F], va
 // postgres -> jobs -> core -> httpApi -> app
 object Core {
   def apply[F[_]: Async: Logger](
-      xa: Transactor[F]
+      xa: Transactor[F],
+      tokenConfig: TokenConfig,
+      emailServiceConfig: EmailServiceConfig
   ): Resource[F, Core[F]] = {
     val coreF = for {
       jobs  <- LiveJobs[F](xa)
       users <- LiveUsers[F](xa)
-      auth  <- LiveAuth[F](users)
+      tokens <- LiveTokens[F](users)(xa, tokenConfig)
+      emails <- LiveEmails[F](emailServiceConfig)
+      auth  <- LiveAuth[F](users, tokens, emails)
     } yield new Core(jobs, users, auth)
 
     Resource.eval(coreF)
