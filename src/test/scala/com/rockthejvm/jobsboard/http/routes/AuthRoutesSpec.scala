@@ -43,34 +43,53 @@ class AuthRoutesSpec
   // prep
   ////////////////////////////////////////////////////////////////////////////////
 
+  val mockedAuth: Auth[IO] = probedAuth(None)
 
-  val mockedAuth: Auth[IO] = new Auth[IO] {
+  def probedAuth(userMap: Option[Ref[IO, Map[String, String]]]): Auth[IO] = new Auth[IO] {
     def login(email: String, password: String): IO[Option[User]] =
       if (email == antonioEmail && password == antonioPassword)
         IO.pure(Some(Antonio))
       else IO.pure(None)
 
-    def signUp(newUserInfo: NewUserInfo): IO[Option[User]] = 
+    def signUp(newUserInfo: NewUserInfo): IO[Option[User]] =
       if (newUserInfo.email == riccardoEmail)
         IO.pure(Some(Riccardo))
-      else 
+      else
         IO.pure(None)
 
     def changePassword(
         email: String,
         newPasswordInfo: NewPasswordInfo
-    ): IO[Either[String, Option[User]]] = 
+    ): IO[Either[String, Option[User]]] =
       if (email == antonioEmail)
         if (newPasswordInfo.oldPassword == antonioPassword)
           IO.pure(Right(Some(Antonio)))
         else
           IO.pure(Left("Invalid password"))
-      else 
+      else
         IO.pure(Right(None))
 
     def delete(email: String): IO[Boolean] = IO.pure(true)
 
-    def authenticator: Authenticator[IO] = mockedAuthenticator
+    def sendPasswordRecoveryToken(email: String): IO[Unit] =
+      userMap
+        .traverse { userMapRef =>
+          userMapRef.modify { userMap =>
+            (userMap + (email -> "abc123"), ())
+          }
+        }
+        .map(_ => ())
+
+    def recoverPasswordFromToken(email: String, token: String, newPassword: String): IO[Boolean] =
+      userMap
+        .traverse { userMapRef =>
+          userMapRef.get
+            .map { userMap =>
+              userMap.get(email).filter(_ == token)
+            }
+            .map(_.nonEmpty)
+        }
+        .map(_.getOrElse(false))
   }
 
   given logger: Logger[IO]       = Slf4jLogger.getLogger[IO]
@@ -223,6 +242,52 @@ class AuthRoutesSpec
         )
       } yield {
         response.status shouldBe Status.Unauthorized
+      }
+    }
+
+    "should return a 200 - Ok when resetting a password, and an email should be triggered" in {
+      for {
+        userMapRef <- Ref.of[IO, Map[String, String]](Map())
+        auth       <- IO(probedAuth(Some(userMapRef)))
+        routes     <- IO(AuthRoutes(auth, mockedAuthenticator).routes)
+        response <- routes.orNotFound.run(
+          Request(method = Method.POST, uri = uri"/auth/reset")
+            .withEntity(ForgotPasswordInfo(antonioEmail))
+        )
+        userMap <- userMapRef.get
+      } yield {
+        response.status shouldBe Status.Ok
+        userMap should contain key (antonioEmail)
+      }
+    }
+
+    "should return a 200 - Ok when recovering a password for a correct user/token combination" in {
+      for {
+        userMapRef <- Ref.of[IO, Map[String, String]](Map(antonioEmail -> "abc123"))
+        auth       <- IO(probedAuth(Some(userMapRef)))
+        routes     <- IO(AuthRoutes(auth, mockedAuthenticator).routes)
+        response <- routes.orNotFound.run(
+          Request(method = Method.POST, uri = uri"/auth/recover")
+            .withEntity(RecoverPasswordInfo(antonioEmail, "abc123", "myNewPassword"))
+        )
+        userMap <- userMapRef.get
+      } yield {
+        response.status shouldBe Status.Ok
+      }
+    }
+
+    "should return a 403 - Forbidden when recovering a password for user with an incorrect token" in {
+      for {
+        userMapRef <- Ref.of[IO, Map[String, String]](Map(antonioEmail -> "abc123"))
+        auth       <- IO(probedAuth(Some(userMapRef)))
+        routes     <- IO(AuthRoutes(auth, mockedAuthenticator).routes)
+        response <- routes.orNotFound.run(
+          Request(method = Method.POST, uri = uri"/auth/recover")
+            .withEntity(RecoverPasswordInfo(antonioEmail, "wrongtoken", "myNewPassword"))
+        )
+        userMap <- userMapRef.get
+      } yield {
+        response.status shouldBe Status.Forbidden
       }
     }
 
