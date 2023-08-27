@@ -88,7 +88,7 @@ class LiveEmails[F[_]: MonadCancelThrow] private (emailServiceConfig: EmailServi
   )(from: String, to: String, subject: String, content: String): Resource[F, MimeMessage] = {
     val message = new MimeMessage(session)
     message.setFrom("antonio.jimenez.nieto@gmail.com")
-    message.setRecipients(Message.RecipientType.TO, "the.user@gmail.com")
+    message.setRecipients(Message.RecipientType.TO, to)
     message.setSubject(subject)
     message.setContent(content, "text/html; charset=utf-8")
 
