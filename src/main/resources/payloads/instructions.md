@@ -27,7 +27,7 @@ Instructions for playing with users:
     ```
     curl -v -X POST -H "Content-Type: application/json" 
     -d '{
-    "email":"antonio@gmail.com", "password":"rockthejvm"
+    "email":"antonio.jimenez.nieto@gmail.com", "password":"rockthejvm"
     }' 
     http://localhost:4041/api/auth/users
     ```
@@ -60,6 +60,24 @@ Instructions for playing with users:
     -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2OTI2NDQ2MDIsImlhdCI6MTY5MjU1ODIwMiwianRpIjoiNzdjNWJkMWNiMmE4NTA4OGQ4NjQ0NjIwOGVjYWVjNzcifQ.ts2dxra876-LAHCCK0XOZ5VWceFaX-XK0hnTyiUpSEI" \
     -d '{"email":"antonio@gmail.com"}' \
     http://localhost:4041/api/auth/users/
+    ```
+
+    forgot password: 
+    ```
+    curl -v -X POST -H "Content-Type: application/json" 
+    -d '{
+    "email":"antonio.jimenez.nieto@gmail.com"
+    }' 
+    http://localhost:4041/api/auth/reset
+    ```
+
+    reset password: 
+    ```
+    curl -v -X POST -H "Content-Type: application/json" 
+    -d '{
+    "email":"antonio.jimenez.nieto@gmail.com", "token":"L3LQS4QY", "newPassword":"ILoveScala"
+    }' 
+    http://localhost:4041/api/auth/recover    
     ```
 
 
