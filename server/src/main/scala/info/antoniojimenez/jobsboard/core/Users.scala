@@ -15,8 +15,11 @@ import info.antoniojimenez.jobsboard.domain.user.*
 trait Users[F[_]] {
   // CRUD
   def find(email: String): F[Option[User]]
+
   def create(user: User): F[String]
+
   def update(user: User): F[Option[User]]
+  
   def delete(email: String): F[Boolean]
 }
 

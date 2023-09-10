@@ -10,8 +10,8 @@ import scala.util.Random
 
 trait Tokens[F[_]] {
   def getToken(email: String): F[Option[String]]
+  
   def checkToken(email: String, token: String): F[Boolean]
-
 }
 
 class LiveTokens[F[_]: MonadCancelThrow: Logger](users: Users[F])(

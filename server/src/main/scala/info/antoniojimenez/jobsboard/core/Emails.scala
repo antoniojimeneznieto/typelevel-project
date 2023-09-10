@@ -13,8 +13,8 @@ import javax.mail.Transport
 
 trait Emails[F[_]] {
   def sendEmail(to: String, subject: String, content: String): F[Unit]
+  
   def sendPasswordRecoveryEmail(to: String, token: String): F[Unit]
-
 }
 
 class LiveEmails[F[_]: MonadCancelThrow] private (emailServiceConfig: EmailServiceConfig)

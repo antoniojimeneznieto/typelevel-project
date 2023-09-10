@@ -22,6 +22,7 @@ import scala.concurrent.duration._
 
 trait Auth[F[_]] {
   def login(email: String, password: String): F[Option[User]]
+
   def signUp(newUserInfo: NewUserInfo): F[Option[User]]
 
   def changePassword(
@@ -92,7 +93,6 @@ class LiveAuth[F[_]: Async: Logger] private (
         val NewPasswordInfo(oldPassword, newPassword) = newPasswordInfo
         checkAndUpdate(user, newPasswordInfo.oldPassword, newPasswordInfo.newPassword)
     }
-
   }
 
   def delete(email: String): F[Boolean] = users.delete(email)
