@@ -1,10 +1,16 @@
 package info.antoniojimenez.jobsboard.pages
 
 import tyrian.*
-import tyrian.Html.*
 import cats.effect.*
+import tyrian.Html.*
+import tyrian.http.*
 import tyrian.cmds.Logger
+import io.circe.syntax.*
+import io.circe.parser.*
+import io.circe.generic.auto.*
+
 import info.antoniojimenez.jobsboard.common.*
+import info.antoniojimenez.jobsboard.domain.auth.*
 
 final case class SignUpPage(
     email: String = "",
@@ -35,9 +41,22 @@ final case class SignUpPage(
       else if (password != confirmPassword)
         (setErrorStatus("Password fields do not match"), Cmd.None)
       else
-        (this, Logger.consoleLog[IO]("Signing up!", email, password, firstName, lastName, company))
+        (
+          this,
+          Commands.signup(
+            NewUserInfo(
+              email,
+              password,
+              Option(firstName).filter(_.nonEmpty),
+              Option(lastName).filter(_.nonEmpty),
+              Option(company).filter(_.nonEmpty)
+            )
+          )
+        )
     }
-    case _ => (this, Cmd.None)
+    case SignUpError(message)   => (setErrorStatus(message), Cmd.None)
+    case SignUpSuccess(message) => (setSuccessStatus(message), Cmd.None)
+    case _                      => (this, Cmd.None)
   }
 
   def view(): Html[Page.Msg] =
@@ -90,12 +109,15 @@ final case class SignUpPage(
         if (isRequired) span("*") else span(),
         text(name)
       ),
-      input(`type` := "text", `class` := "form-control", id := uid, onInput(onChange))
+      input(`type` := kind, `class` := "form-control", id := uid, onInput(onChange))
     )
 
   // Util
   def setErrorStatus(message: String): Page =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.ERROR)))
+
+  def setSuccessStatus(message: String): Page =
+    this.copy(status = Some(Page.Status(message, Page.StatusKind.SUCCESS)))
 }
 
 object SignUpPage {
@@ -109,4 +131,36 @@ object SignUpPage {
   // actions
   case object AttempSignUp extends Msg
   case object NoOp         extends Msg
+  // statuses
+  case class SignUpError(message: String)   extends Msg
+  case class SignUpSuccess(message: String) extends Msg
+
+  object Endpoints {
+    val signup = new Endpoint[Msg] {
+      val location = Constants.Endpoints.signup
+      val method   = Method.Post
+      val onSuccess: Response => Msg = response =>
+        response.status match {
+          case Status(201, _) =>
+            SignUpSuccess("Sucess! Log in now.")
+          case Status(s, _) if s >= 400 && s < 500 =>
+            val json   = response.body
+            val parsed = parse(json).flatMap(json => json.hcursor.get[String]("error"))
+            parsed match {
+              case Left(e)  => SignUpError(s"Error ${e.getMessage}")
+              case Right(e) => SignUpError(e)
+            }
+        }
+
+      val onError: HttpError => Msg =
+        e => SignUpError(e.toString)
+
+    }
+  }
+
+  object Commands {
+    def signup(newUserInfo: NewUserInfo): Cmd[IO, Msg] = {
+      Endpoints.signup.call(newUserInfo)
+    }
+  }
 }
