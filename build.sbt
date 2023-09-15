@@ -47,6 +47,7 @@ lazy val app = (project in file("app"))
     semanticdbEnabled := true,
     autoAPIMappings   := true
   )
+  .dependsOn(core.js)
 
 lazy val catsEffectVersion          = "3.3.14"
 lazy val http4sVersion              = "0.23.15"
