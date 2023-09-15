@@ -2,6 +2,7 @@ package info.antoniojimenez.jobsboard.fixtures
 
 import cats.effect.IO 
 import info.antoniojimenez.jobsboard.core.Users
+import info.antoniojimenez.jobsboard.domain.auth.*
 import info.antoniojimenez.jobsboard.domain.user.*
 
 /*
