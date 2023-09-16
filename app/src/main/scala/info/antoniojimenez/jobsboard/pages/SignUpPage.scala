@@ -33,7 +33,7 @@ final case class SignUpPage(
     case UpdateFirstName(firstName) => (this.copy(firstName = firstName), Cmd.None)
     case UpdateLastName(lastName)   => (this.copy(lastName = lastName), Cmd.None)
     case UpdateCompany(company)     => (this.copy(company = company), Cmd.None)
-    case AttempSignUp => {
+    case AttemptSignUp => {
       if (!email.matches(Constants.emailRegex))
         (setErrorStatus("Email is invalid"), Cmd.None)
       else if (password.isEmpty())
@@ -89,7 +89,7 @@ final case class SignUpPage(
         renderInput("LastName", "lastName", "text", false, UpdateLastName(_)),
         renderInput("Company", "company", "text", false, UpdateCompany(_)),
         // button
-        button(`type` := "button", onClick(AttempSignUp))("Sign up")
+        button(`type` := "button", onClick(AttemptSignUp))("Sign up")
       ),
       status.map(s => div(s.messages)).getOrElse(div())
     )
@@ -129,7 +129,7 @@ object SignUpPage {
   case class UpdateLastName(lastName: String)               extends Msg
   case class UpdateCompany(company: String)                 extends Msg
   // actions
-  case object AttempSignUp extends Msg
+  case object AttemptSignUp extends Msg
   case object NoOp         extends Msg
   // statuses
   case class SignUpError(message: String)   extends Msg
