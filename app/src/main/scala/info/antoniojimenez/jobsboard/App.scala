@@ -13,9 +13,9 @@ import components.*
 import info.antoniojimenez.jobsboard.pages.*
 
 object App {
-  type Msg = Router.Msg | Page.Msg
+  trait Msg
 
-  case class Model(router: Router, page: Page)
+  case class Model(router: Router, session: Session, page: Page)
 }
 
 @JSExportTopLevel("antonioApp")
@@ -32,7 +32,10 @@ class App extends TyrianApp[App.Msg, App.Model] { // [Message, model = "state"]
     val page                = Page.get(location)
     val pageCmd             = page.initCmd
     val (router, routerCmd) = Router.startAt(location)
-    (Model(router, page), routerCmd |+| pageCmd)
+    val session             = Session()
+    val sessionCmd          = session.initCmd
+
+    (Model(router, session, page), routerCmd |+| sessionCmd |+| pageCmd)
   }
 
   // potentially endless stream of messages
@@ -50,15 +53,20 @@ class App extends TyrianApp[App.Msg, App.Model] { // [Message, model = "state"]
   override def update(model: Model): Msg => (Model, Cmd[IO, Msg]) =
     case msg: Router.Msg =>
       val (newRouter, routerCmd) = model.router.update(msg)
-      if (model.router == newRouter)  // no change is necessary
+      if (model.router == newRouter) // no change is necessary
         (model, Cmd.None)
       else {
         // location changed need to re-render the appropriate page
-        val newPage = Page.get(newRouter.location)
+        val newPage    = Page.get(newRouter.location)
         val newPageCmd = newPage.initCmd
         (model.copy(router = newRouter, page = newPage), routerCmd |+| newPageCmd)
       }
-    case msg: Page.Msg =>
+
+    case msg: Session.Msg =>
+      val (newSession, cmd) = model.session.update(msg)
+      (model.copy(session = newSession), cmd)
+
+    case msg: App.Msg =>
       val (newPage, cmd) = model.page.update(msg)
       (model.copy(page = newPage), cmd)
 

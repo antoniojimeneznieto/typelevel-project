@@ -13,6 +13,9 @@ import info.antoniojimenez.jobsboard.common.Constants
 import info.antoniojimenez.jobsboard.domain.auth.LoginInfo
 import info.antoniojimenez.jobsboard.common.Endpoint
 import tyrian.cmds.Logger
+import info.antoniojimenez.jobsboard.core.Session
+
+import info.antoniojimenez.jobsboard.*
 
 final case class LoginPage(
     email: String = "",
@@ -21,10 +24,10 @@ final case class LoginPage(
 ) extends Page {
   import LoginPage.*
 
-  def initCmd: Cmd[IO, Page.Msg] =
+  def initCmd: Cmd[IO, App.Msg] =
     Cmd.None
 
-  def update(msg: Page.Msg): (Page, Cmd[IO, Page.Msg]) = msg match {
+  def update(msg: App.Msg): (Page, Cmd[IO, App.Msg]) = msg match {
     case UpdateEmail(email)       => (this.copy(email = email), Cmd.None)
     case UpdatePassword(password) => (this.copy(password = password), Cmd.None)
     case AttemptLogin =>
@@ -36,11 +39,11 @@ final case class LoginPage(
     case LoginError(error) =>
       (setErrorStatus(error), Cmd.None)
     case LoginSuccess(token) =>
-      (setSuccessStatus("Success!"), Logger.consoleLog[IO](s"I have a token: $token"))
+      (setSuccessStatus("Success!"), Cmd.emit(Session.SetToken(email, token)))
     case _ => (this, Cmd.None)
   }
 
-  def view(): Html[Page.Msg] =
+  def view(): Html[App.Msg] =
     div(`class` := "form-section")(
       div(`class` := "top-section")(
         h1("Sign Up")
@@ -92,7 +95,7 @@ final case class LoginPage(
 }
 
 object LoginPage {
-  trait Msg                                   extends Page.Msg
+  trait Msg                                   extends App.Msg
   case class UpdateEmail(email: String)       extends Msg
   case class UpdatePassword(password: String) extends Msg
   case object AttemptLogin                    extends Msg

@@ -12,6 +12,8 @@ import io.circe.generic.auto.*
 import info.antoniojimenez.jobsboard.common.*
 import info.antoniojimenez.jobsboard.domain.auth.*
 
+import info.antoniojimenez.jobsboard.*
+
 final case class SignUpPage(
     email: String = "",
     password: String = "",
@@ -22,10 +24,10 @@ final case class SignUpPage(
     status: Option[Page.Status] = None
 ) extends Page {
   import SignUpPage.*
-  def initCmd: Cmd[IO, Page.Msg] =
+  def initCmd: Cmd[IO, App.Msg] =
     Cmd.None
 
-  def update(msg: Page.Msg): (Page, Cmd[IO, Page.Msg]) = msg match {
+  def update(msg: App.Msg): (Page, Cmd[IO, App.Msg]) = msg match {
     case UpdateEmail(email)       => (this.copy(email = email), Cmd.None)
     case UpdatePassword(password) => (this.copy(password = password), Cmd.None)
     case UpdateConfirmPassword(confirmPassword) =>
@@ -59,7 +61,7 @@ final case class SignUpPage(
     case _                      => (this, Cmd.None)
   }
 
-  def view(): Html[Page.Msg] =
+  def view(): Html[App.Msg] =
     div(`class` := "form-section")(
       div(`class` := "top-section")(
         h1("Sign Up")
@@ -121,7 +123,7 @@ final case class SignUpPage(
 }
 
 object SignUpPage {
-  trait Msg                                                 extends Page.Msg
+  trait Msg                                                 extends App.Msg
   case class UpdateEmail(email: String)                     extends Msg
   case class UpdatePassword(password: String)               extends Msg
   case class UpdateConfirmPassword(confirmPassword: String) extends Msg
