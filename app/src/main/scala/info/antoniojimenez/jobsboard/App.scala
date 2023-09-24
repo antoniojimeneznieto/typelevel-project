@@ -75,7 +75,8 @@ class App extends TyrianApp[App.Msg, App.Model] { // [Message, model = "state"]
     div(
       // <a href="/jobs">Jobs</a>
       Header.view(),
-      model.page.view()
+      model.page.view(),
+      div(model.session.email.getOrElse("Unauthenticated"))
     )
 
 }
