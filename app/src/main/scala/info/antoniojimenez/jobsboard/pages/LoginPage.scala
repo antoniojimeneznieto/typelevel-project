@@ -46,7 +46,7 @@ final case class LoginPage(
   def view(): Html[App.Msg] =
     div(`class` := "form-section")(
       div(`class` := "top-section")(
-        h1("Sign Up")
+        h1("Log In")
       ),
       form(
         name    := "signin",
