@@ -52,7 +52,8 @@ class AuthRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (
           maybeNewUser <- auth.signUp(newUserInfo)
           resp <- maybeNewUser match {
             case Some(user) => Created(user.email)
-            case None       => BadRequest(FailureResponse(s"User with email ${newUserInfo.email} already exists."))
+            case None =>
+              BadRequest(FailureResponse(s"User with email ${newUserInfo.email} already exists."))
 
           }
         } yield resp
@@ -119,10 +120,16 @@ class AuthRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (
       }
   }
 
-  val unauthedRoutes = (loginRoute <+> createUserRoute <+> forgotPasswordRoute <+> recoverPasswordRoute)
+  private val checkTokenRoute: AuthRoute[F] = { case GET -> Root / "checkToken" asAuthed _ =>
+    Ok()
+  }
+
+  val unauthedRoutes =
+    (loginRoute <+> createUserRoute <+> forgotPasswordRoute <+> recoverPasswordRoute)
   val authedRoutes =
     SecuredHandler[F].liftService(
-      changePasswordRoute.restrictedTo(allRoles) |+|
+      checkTokenRoute.restrictedTo(allRoles) |+|
+        changePasswordRoute.restrictedTo(allRoles) |+|
         logoutRoute.restrictedTo(allRoles) |+|
         deleteUserRoute.restrictedTo(adminOnly)
     )
